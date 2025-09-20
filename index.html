@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>IN/OUT Log System (Firebase v12.2.1)</title>
+  <title>IN/OUT Log System (No Firebase)</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -95,35 +95,12 @@
     <tbody></tbody>
   </table>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-    import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-analytics.js";
-    import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-    import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js";
-
-    // 🔹 Firebase Config
-    const firebaseConfig = {
-      apiKey: "AIzaSyB7i4DR8QDcw2XVCtXRwYUAIJqP-TMlFl8",
-      authDomain: "inoutlogsystem.firebaseapp.com",
-      databaseURL: "https://inoutlogsystem-default-rtdb.firebaseio.com",
-      projectId: "inoutlogsystem",
-      storageBucket: "inoutlogsystem.appspot.com",
-      messagingSenderId: "416548580089",
-      appId: "1:416548580089:web:00537ca0510d5e0c9e9028",
-      measurementId: "G-MF701GTM00"
-    };
-
-    // 🔹 Initialize Firebase
-    const app = initializeApp(firebaseConfig);
-    const analytics = getAnalytics(app);
-    const auth = getAuth(app);
-    const db = getDatabase(app);
-
+  <script>
     const lastStatusTimestamps = {};
     const users = {};
-    window.isAuthenticated = false;
+    const logs = []; // store logs locally
 
-    // 🔹 Load users.txt (make sure it's in the same repo as index.html)
+    // 🔹 Load users.txt (must be in same repo)
     fetch("users.txt")
       .then(res => res.text())
       .then(text => {
@@ -141,32 +118,8 @@
       document.getElementById("name").value = users[id] || "";
     });
 
-    // 🔹 Anonymous Auth
-    signInAnonymously(auth)
-      .then(() => console.log("Signed in anonymously"))
-      .catch((error) => {
-        console.error("Anonymous sign-in error:", error);
-        alert("Authentication failed. Please refresh and try again.");
-      });
-
-    onAuthStateChanged(auth, (user) => {
-      if (user) {
-        window.isAuthenticated = true;
-        console.log("User is authenticated:", user.uid);
-        loadLogs();
-      } else {
-        window.isAuthenticated = false;
-        alert("Not authenticated. Please refresh the page.");
-      }
-    });
-
     // 🔹 Mark IN/OUT
     window.markStatus = function(status) {
-      if (!window.isAuthenticated) {
-        alert("Not authenticated yet. Please wait and try again.");
-        return;
-      }
-
       const name = document.getElementById('name').value;
       const id = document.getElementById('idNumber').value.trim();
       if (!name || !id) {
@@ -202,15 +155,14 @@
         lastStatusTimestamps[key] = { status: status, time: now };
       }
 
-      push(ref(db, 'logs'), {
+      // Save log in memory
+      logs.push({
         name,
         id,
         status,
         timestamp: now.toISOString(),
         duration: cellDuration.innerText
-      })
-      .then(() => console.log("Saved to Firebase"))
-      .catch(err => console.error("Firebase error:", err));
+      });
     };
 
     // 🔹 Clear form
@@ -218,33 +170,6 @@
       document.getElementById('idNumber').value = "";
       document.getElementById('name').value = "";
     };
-
-    // 🔹 Load Logs
-    function loadLogs() {
-      if (!window.isAuthenticated) return;
-      const tbody = document.querySelector('#logTable tbody');
-      tbody.innerHTML = "";
-      for (const key in lastStatusTimestamps) delete lastStatusTimestamps[key];
-
-      onValue(ref(db, 'logs'), (snapshot) => {
-        tbody.innerHTML = "";
-        const entries = [];
-        snapshot.forEach(childSnap => entries.push(childSnap.val()));
-        entries.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-
-        entries.forEach(entry => {
-          const row = tbody.insertRow();
-          row.insertCell(0).innerText = entry.name;
-          row.insertCell(1).innerText = entry.id;
-          row.insertCell(2).innerText = entry.status;
-          row.insertCell(3).innerText = new Date(entry.timestamp).toLocaleString();
-          row.insertCell(4).innerText = entry.duration;
-
-          const dur = parseInt(entry.duration);
-          if (!isNaN(dur) && dur > 30) row.style.color = "red";
-        });
-      }, (error) => console.error("Failed to load logs:", error));
-    }
 
     // 🔹 Save as TXT
     window.saveAsTxt = function() {
@@ -318,4 +243,3 @@
 
 </body>
 </html>
-
