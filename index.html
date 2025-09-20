@@ -1,1 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>IN/OUT Log System (Firebase v12.2.1)</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 30px;
+    }
+    label {
+      display: block;
+      margin-top: 10px;
+    }
+    input, button {
+      padding: 8px;
+      margin-top: 5px;
+      width: 300px;
+      max-width: 100%;
+    }
+    input[readonly] {
+      background-color: #f9f9f9;
+      cursor: not-allowed;
+    }
+    .buttons {
+      margin-top: 15px;
+    }
+    .buttons button {
+      width: 120px;
+      margin-right: 10px;
+      margin-bottom: 10px;
+    }
+    table {
+      margin-top: 30px;
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 10px;
+      border: 1px solid #999;
+      text-align: center;
+    }
+    th {
+      background-color: #f2f2f2;
+    }
+    h3 {
+      margin-top: 50px;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>IN/OUT Data Entry Log</h2>
+
+  <label for="idNumber">Enter ID Number:</label>
+  <input type="text" id="idNumber" placeholder="Enter ID Number" />
+
+  <label for="name">Name:</label>
+  <input type="text" id="name" readonly />
+
+  <div class="buttons">
+    <button onclick="markStatus('IN')">IN</button>
+    <button onclick="markStatus('OUT')">OUT</button>
+    <button onclick="clearForm()">Clear</button>
+    <button onclick="saveAsTxt()">Save as .TXT</button>
+    <button onclick="generateSummary()">Generate Summary</button>
+  </div>
+
+  <!-- Log Table -->
+  <table id="logTable">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>ID Number</th>
+        <th>Status</th>
+        <th>Timestamp</th>
+        <th>Duration (min)</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <!-- Summary Table -->
+  <h3>Summary Report</h3>
+  <table id="summaryTable">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>ID Number</th>
+        <th>Total Duration (minutes)</th>
+        <th>Sessions Counted</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-analytics.js";
+    import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+    import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js";
+
+    // 🔹 Firebase Config
+    const firebaseConfig = {
+      apiKey: "AIzaSyB7i4DR8QDcw2XVCtXRwYUAIJqP-TMlFl8",
+      authDomain: "inoutlogsystem.firebaseapp.com",
+      databaseURL: "https://inoutlogsystem-default-rtdb.firebaseio.com",
+      projectId: "inoutlogsystem",
+      storageBucket: "inoutlogsystem.appspot.com",
+      messagingSenderId: "416548580089",
+      appId: "1:416548580089:web:00537ca0510d5e0c9e9028",
+      measurementId: "G-MF701GTM00"
+    };
+
+    // 🔹 Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const analytics = getAnalytics(app);
+    const auth = getAuth(app);
+    const db = getDatabase(app);
+
+    const lastStatusTimestamps = {};
+    const users = {};
+    window.isAuthenticated = false;
+
+    // 🔹 Load users.txt (make sure it's in the same repo as index.html)
+    fetch("users.txt")
+      .then(res => res.text())
+      .then(text => {
+        text.split("\n").forEach(line => {
+          const [id, name] = line.split(",");
+          if (id && name) users[id.trim()] = name.trim();
+        });
+        console.log("Users loaded:", users);
+      })
+      .catch(err => console.error("Failed to load users.txt:", err));
+
+    // 🔹 Auto-fill Name when ID is entered
+    document.getElementById("idNumber").addEventListener("input", function () {
+      const id = this.value.trim();
+      document.getElementById("name").value = users[id] || "";
+    });
+
+    // 🔹 Anonymous Auth
+    signInAnonymously(auth)
+      .then(() => console.log("Signed in anonymously"))
+      .catch((error) => {
+        console.error("Anonymous sign-in error:", error);
+        alert("Authentication failed. Please refresh and try again.");
+      });
+
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        window.isAuthenticated = true;
+        console.log("User is authenticated:", user.uid);
+        loadLogs();
+      } else {
+        window.isAuthenticated = false;
+        alert("Not authenticated. Please refresh the page.");
+      }
+    });
+
+    // 🔹 Mark IN/OUT
+    window.markStatus = function(status) {
+      if (!window.isAuthenticated) {
+        alert("Not authenticated yet. Please wait and try again.");
+        return;
+      }
+
+      const name = document.getElementById('name').value;
+      const id = document.getElementById('idNumber').value.trim();
+      if (!name || !id) {
+        alert("Please enter a valid ID number (must exist in users.txt).");
+        return;
+      }
+
+      const now = new Date();
+      const nowFormatted = now.toLocaleString();
+      const key = `${name}_${id}`;
+
+      const tableBody = document.getElementById('logTable').getElementsByTagName('tbody')[0];
+      const newRow = tableBody.insertRow();
+      newRow.insertCell(0).innerText = name;
+      newRow.insertCell(1).innerText = id;
+      newRow.insertCell(2).innerText = status;
+      newRow.insertCell(3).innerText = nowFormatted;
+      const cellDuration = newRow.insertCell(4);
+      cellDuration.innerText = "-";
+
+      const lastEntry = lastStatusTimestamps[key];
+      if (lastEntry && lastEntry.status !== status) {
+        const diffMs = Math.abs(now - lastEntry.time);
+        const diffMin = Math.round(diffMs / 60000);
+        cellDuration.innerText = diffMin;
+
+        if (diffMin > 30) {
+          newRow.style.color = "red";
+          alert(`${name} exceeded 30 minutes (${diffMin} mins) between ${lastEntry.status} and ${status}.`);
+        }
+        delete lastStatusTimestamps[key];
+      } else {
+        lastStatusTimestamps[key] = { status: status, time: now };
+      }
+
+      push(ref(db, 'logs'), {
+        name,
+        id,
+        status,
+        timestamp: now.toISOString(),
+        duration: cellDuration.innerText
+      })
+      .then(() => console.log("Saved to Firebase"))
+      .catch(err => console.error("Firebase error:", err));
+    };
+
+    // 🔹 Clear form
+    window.clearForm = function() {
+      document.getElementById('idNumber').value = "";
+      document.getElementById('name').value = "";
+    };
+
+    // 🔹 Load Logs
+    function loadLogs() {
+      if (!window.isAuthenticated) return;
+      const tbody = document.querySelector('#logTable tbody');
+      tbody.innerHTML = "";
+      for (const key in lastStatusTimestamps) delete lastStatusTimestamps[key];
+
+      onValue(ref(db, 'logs'), (snapshot) => {
+        tbody.innerHTML = "";
+        const entries = [];
+        snapshot.forEach(childSnap => entries.push(childSnap.val()));
+        entries.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+        entries.forEach(entry => {
+          const row = tbody.insertRow();
+          row.insertCell(0).innerText = entry.name;
+          row.insertCell(1).innerText = entry.id;
+          row.insertCell(2).innerText = entry.status;
+          row.insertCell(3).innerText = new Date(entry.timestamp).toLocaleString();
+          row.insertCell(4).innerText = entry.duration;
+
+          const dur = parseInt(entry.duration);
+          if (!isNaN(dur) && dur > 30) row.style.color = "red";
+        });
+      }, (error) => console.error("Failed to load logs:", error));
+    }
+
+    // 🔹 Save as TXT
+    window.saveAsTxt = function() {
+      let txt = '--- IN/OUT Log ---\n';
+      document.querySelectorAll('#logTable tr').forEach(row => {
+        const cols = row.querySelectorAll('th, td');
+        txt += Array.from(cols).map(col => col.innerText).join('\t') + '\n';
+      });
+
+      txt += '\n--- Summary Report ---\n';
+      document.querySelectorAll('#summaryTable tr').forEach(row => {
+        const cols = row.querySelectorAll('th, td');
+        txt += Array.from(cols).map(col => col.innerText).join('\t') + '\n';
+      });
+
+      const blob = new Blob([txt], { type: 'text/plain' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'INOUT_Log_With_Summary.txt';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    };
+
+    // 🔹 Generate Summary
+    window.generateSummary = function() {
+      const logRows = document.querySelectorAll('#logTable tbody tr');
+      const userLogs = {};
+
+      logRows.forEach(row => {
+        const name = row.cells[0].innerText.trim();
+        const id = row.cells[1].innerText.trim();
+        const status = row.cells[2].innerText.trim();
+        const timestampStr = row.cells[3].innerText.trim();
+        const time = new Date(timestampStr);
+        const key = `${name}_${id}`;
+        if (!userLogs[key]) userLogs[key] = [];
+        userLogs[key].push({ status, time });
+      });
+
+      const summary = {};
+      for (const key in userLogs) {
+        const logs = userLogs[key].sort((a, b) => a.time - b.time);
+        let totalMinutes = 0, sessionCount = 0;
+
+        for (let i = 0; i < logs.length - 1; i++) {
+          const a = logs[i], b = logs[i + 1];
+          if (a.status !== b.status) {
+            const diffMs = Math.abs(b.time - a.time);
+            const diffMin = Math.round(diffMs / 60000);
+            totalMinutes += diffMin;
+            sessionCount++;
+            i++; // skip matched OUT
+          }
+        }
+        summary[key] = { name: key.split('_')[0], id: key.split('_')[1], total: totalMinutes, count: sessionCount };
+      }
+
+      const summaryBody = document.querySelector('#summaryTable tbody');
+      summaryBody.innerHTML = '';
+      for (const key in summary) {
+        const data = summary[key];
+        const row = summaryBody.insertRow();
+        row.insertCell(0).innerText = data.name;
+        row.insertCell(1).innerText = data.id;
+        row.insertCell(2).innerText = data.total;
+        row.insertCell(3).innerText = data.count;
+      }
+    };
+  </script>
+
+</body>
+</html>
 
