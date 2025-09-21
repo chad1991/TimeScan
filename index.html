@@ -54,7 +54,7 @@
   <h2>IN/OUT Data Entry Log</h2>
 
   <label for="idNumber">Enter ID Number:</label>
-  <input type="text" id="idNumber" placeholder="Enter ID Number" />
+  <input type="text" id="idNumber" placeholder="Enter ID Number" autofocus />
 
   <label for="name">Name:</label>
   <input type="text" id="name" readonly />
@@ -163,12 +163,16 @@
         timestamp: now.toISOString(),
         duration: cellDuration.innerText
       });
+
+      // ✅ Auto clear inputs after logging
+      clearForm();
     };
 
     // 🔹 Clear form
     window.clearForm = function() {
       document.getElementById('idNumber').value = "";
       document.getElementById('name').value = "";
+      document.getElementById('idNumber').focus(); // ✅ Auto focus back to ID field
     };
 
     // 🔹 Save as TXT
