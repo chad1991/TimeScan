@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>IN/OUT Log System (No Firebase)</title>
+  <title>IN/OUT Log System (Persistent)</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -27,7 +27,7 @@
       margin-top: 15px;
     }
     .buttons button {
-      width: 120px;
+      width: 140px;
       margin-right: 10px;
       margin-bottom: 10px;
     }
@@ -62,9 +62,10 @@
   <div class="buttons">
     <button onclick="markStatus('IN')">IN</button>
     <button onclick="markStatus('OUT')">OUT</button>
-    <button onclick="clearForm()">Clear</button>
+    <button onclick="clearForm()">Clear Form</button>
     <button onclick="saveAsTxt()">Save as .TXT</button>
     <button onclick="generateSummary()">Generate Summary</button>
+    <button onclick="clearHistory()">Clear History</button>
   </div>
 
   <!-- Log Table -->
@@ -98,9 +99,10 @@
   <script>
     const lastStatusTimestamps = {};
     const users = {};
-    const logs = []; // store logs locally
+    let logs = JSON.parse(localStorage.getItem("logs")) || [];
+    let summaryData = JSON.parse(localStorage.getItem("summary")) || {};
 
-    // 🔹 Load users.txt (must be in same repo)
+    // 🔹 Load users.txt
     fetch("users.txt")
       .then(res => res.text())
       .then(text => {
@@ -108,7 +110,6 @@
           const [id, name] = line.split(",");
           if (id && name) users[id.trim()] = name.trim();
         });
-        console.log("Users loaded:", users);
       })
       .catch(err => console.error("Failed to load users.txt:", err));
 
@@ -117,6 +118,12 @@
       const id = this.value.trim();
       document.getElementById("name").value = users[id] || "";
     });
+
+    // 🔹 Load saved data on startup
+    window.onload = function () {
+      logs.forEach(log => addRow(log));
+      renderSummary(summaryData);
+    };
 
     // 🔹 Mark IN/OUT
     window.markStatus = function(status) {
@@ -131,23 +138,21 @@
       const nowFormatted = now.toLocaleString();
       const key = `${name}_${id}`;
 
-      const tableBody = document.getElementById('logTable').getElementsByTagName('tbody')[0];
-      const newRow = tableBody.insertRow();
-      newRow.insertCell(0).innerText = name;
-      newRow.insertCell(1).innerText = id;
-      newRow.insertCell(2).innerText = status;
-      newRow.insertCell(3).innerText = nowFormatted;
-      const cellDuration = newRow.insertCell(4);
-      cellDuration.innerText = "-";
+      const logEntry = {
+        name,
+        id,
+        status,
+        timestamp: nowFormatted,
+        duration: "-"
+      };
 
       const lastEntry = lastStatusTimestamps[key];
       if (lastEntry && lastEntry.status !== status) {
         const diffMs = Math.abs(now - lastEntry.time);
         const diffMin = Math.round(diffMs / 60000);
-        cellDuration.innerText = diffMin;
+        logEntry.duration = diffMin;
 
         if (diffMin > 30) {
-          newRow.style.color = "red";
           alert(`${name} exceeded 30 minutes (${diffMin} mins) between ${lastEntry.status} and ${status}.`);
         }
         delete lastStatusTimestamps[key];
@@ -155,24 +160,30 @@
         lastStatusTimestamps[key] = { status: status, time: now };
       }
 
-      // Save log in memory
-      logs.push({
-        name,
-        id,
-        status,
-        timestamp: now.toISOString(),
-        duration: cellDuration.innerText
-      });
+      logs.push(logEntry);
+      localStorage.setItem("logs", JSON.stringify(logs));
+      addRow(logEntry);
 
-      // ✅ Auto clear inputs after logging
+      generateSummary(); // ✅ auto-update summary
       clearForm();
     };
+
+    // 🔹 Add row to log table
+    function addRow(log) {
+      const tableBody = document.querySelector('#logTable tbody');
+      const newRow = tableBody.insertRow();
+      newRow.insertCell(0).innerText = log.name;
+      newRow.insertCell(1).innerText = log.id;
+      newRow.insertCell(2).innerText = log.status;
+      newRow.insertCell(3).innerText = log.timestamp;
+      newRow.insertCell(4).innerText = log.duration || "-";
+    }
 
     // 🔹 Clear form
     window.clearForm = function() {
       document.getElementById('idNumber').value = "";
       document.getElementById('name').value = "";
-      document.getElementById('idNumber').focus(); // ✅ Auto focus back to ID field
+      document.getElementById('idNumber').focus();
     };
 
     // 🔹 Save as TXT
@@ -198,40 +209,47 @@
       document.body.removeChild(link);
     };
 
-    // 🔹 Generate Summary
+    // 🔹 Generate & Save Summary
     window.generateSummary = function() {
-      const logRows = document.querySelectorAll('#logTable tbody tr');
       const userLogs = {};
-
-      logRows.forEach(row => {
-        const name = row.cells[0].innerText.trim();
-        const id = row.cells[1].innerText.trim();
-        const status = row.cells[2].innerText.trim();
-        const timestampStr = row.cells[3].innerText.trim();
-        const time = new Date(timestampStr);
-        const key = `${name}_${id}`;
+      logs.forEach(log => {
+        const key = `${log.name}_${log.id}`;
         if (!userLogs[key]) userLogs[key] = [];
-        userLogs[key].push({ status, time });
+        userLogs[key].push({
+          status: log.status,
+          time: new Date(log.timestamp)
+        });
       });
 
-      const summary = {};
+      summaryData = {};
       for (const key in userLogs) {
-        const logs = userLogs[key].sort((a, b) => a.time - b.time);
+        const sorted = userLogs[key].sort((a, b) => a.time - b.time);
         let totalMinutes = 0, sessionCount = 0;
 
-        for (let i = 0; i < logs.length - 1; i++) {
-          const a = logs[i], b = logs[i + 1];
+        for (let i = 0; i < sorted.length - 1; i++) {
+          const a = sorted[i], b = sorted[i + 1];
           if (a.status !== b.status) {
             const diffMs = Math.abs(b.time - a.time);
             const diffMin = Math.round(diffMs / 60000);
             totalMinutes += diffMin;
             sessionCount++;
-            i++; // skip matched OUT
+            i++;
           }
         }
-        summary[key] = { name: key.split('_')[0], id: key.split('_')[1], total: totalMinutes, count: sessionCount };
+        summaryData[key] = {
+          name: key.split('_')[0],
+          id: key.split('_')[1],
+          total: totalMinutes,
+          count: sessionCount
+        };
       }
 
+      localStorage.setItem("summary", JSON.stringify(summaryData));
+      renderSummary(summaryData);
+    };
+
+    // 🔹 Render Summary Table
+    function renderSummary(summary) {
       const summaryBody = document.querySelector('#summaryTable tbody');
       summaryBody.innerHTML = '';
       for (const key in summary) {
@@ -241,6 +259,18 @@
         row.insertCell(1).innerText = data.id;
         row.insertCell(2).innerText = data.total;
         row.insertCell(3).innerText = data.count;
+      }
+    }
+
+    // 🔹 Clear All Data
+    window.clearHistory = function() {
+      if (confirm("Are you sure you want to clear all logs and summary?")) {
+        logs = [];
+        summaryData = {};
+        localStorage.removeItem("logs");
+        localStorage.removeItem("summary");
+        document.querySelector('#logTable tbody').innerHTML = "";
+        document.querySelector('#summaryTable tbody').innerHTML = "";
       }
     };
   </script>
