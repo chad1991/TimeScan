@@ -17,6 +17,28 @@
     h3 { margin-top: 50px; }
     /* Space for floating header */
     body { padding-top: 80px; }
+
+    /* Highlight input box on focus */
+    input[type="text"]:focus {
+      background-color: lightblue;
+      color: white;
+      outline: none;
+    }
+
+    /* Normal button */
+    button {
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      background-color: #ddd;
+      color: black;
+    }
+
+    /* Active (highlighted) button */
+    .active-btn {
+      background-color: blue !important;
+      color: white !important;
+    }
   </style>
 </head>
 <body>
@@ -30,8 +52,8 @@
   <input type="text" id="name" readonly />
 
   <div class="buttons">
-    <button onclick="markStatus('IN')">IN</button>
-    <button onclick="markStatus('OUT')">OUT</button>
+    <button onclick="highlightButton(this); markStatus('IN')">IN</button>
+    <button onclick="highlightButton(this); markStatus('OUT')">OUT</button>
     <button onclick="clearForm()">Clear Form</button>
     <button onclick="saveAsTxt()">Save as .TXT</button>
     <button onclick="generateSummary()">Generate Summary</button>
@@ -65,6 +87,16 @@
     </thead>
     <tbody></tbody>
   </table>
+
+  <!-- Highlight button logic -->
+  <script>
+    function highlightButton(btn) {
+      // Remove highlight from all buttons inside .buttons div
+      document.querySelectorAll(".buttons button").forEach(b => b.classList.remove("active-btn"));
+      // Add highlight to the clicked button
+      btn.classList.add("active-btn");
+    }
+  </script>
 
   <!-- Include header.js at the bottom -->
   <script src="header.js"></script>
