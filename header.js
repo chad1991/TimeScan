@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
   header.style.fontFamily = 'Arial, sans-serif';
 
   // Logo
-  const logo = document.createElement('img');
+  const logo = document.createElement('png');
   logo.src = 'assets/Logo.png'; // <-- Adjust path if needed
   logo.alt = 'Bench Logo';
   logo.style.height = '50px';
