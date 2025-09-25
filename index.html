@@ -7,10 +7,10 @@
   <style>
     body { font-family: Arial, sans-serif; margin: 30px; }
     label { display: block; margin-top: 10px; }
-    input, button { padding: 8px; margin-top: 5px; width: 300px; max-width: 100%; }
+    input, button, select { padding: 8px; margin-top: 5px; width: 300px; max-width: 100%; }
     input[readonly] { background-color: #f9f9f9; cursor: not-allowed; }
     .buttons { margin-top: 15px; }
-    .buttons button { width: 140px; margin-right: 10px; margin-bottom: 10px; }
+    .buttons button, .buttons select { width: 140px; margin-right: 10px; margin-bottom: 10px; }
     table { margin-top: 30px; width: 100%; border-collapse: collapse; }
     th, td { padding: 10px; border: 1px solid #999; text-align: center; }
     th { background-color: #f2f2f2; }
@@ -26,7 +26,7 @@
     }
 
     /* Normal button */
-    button {
+    button, select {
       border: none;
       border-radius: 5px;
       cursor: pointer;
@@ -54,10 +54,14 @@
   <div class="buttons">
     <button onclick="highlightButton(this); markStatus('IN')">IN</button>
     <button onclick="highlightButton(this); markStatus('OUT')">OUT</button>
-    <button onclick="clearForm()">Clear Form</button>
-    <button onclick="saveAsTxt()">Save as .TXT</button>
-    <button onclick="generateSummary()">Generate Summary</button>
-    <button onclick="clearHistory()">Clear History</button>
+
+    <!-- Dropdown for extra actions -->
+    <select onchange="handleAction(this.value)">
+      <option value="">More Actions</option>
+      <option value="save">Save as .TXT</option>
+      <option value="summary">Generate Summary</option>
+      <option value="clear">Clear History</option>
+    </select>
   </div>
 
   <!-- Log Table -->
@@ -91,10 +95,23 @@
   <!-- Highlight button logic -->
   <script>
     function highlightButton(btn) {
-      // Remove highlight from all buttons inside .buttons div
+      // Remove highlight from IN/OUT buttons only
       document.querySelectorAll(".buttons button").forEach(b => b.classList.remove("active-btn"));
       // Add highlight to the clicked button
       btn.classList.add("active-btn");
+    }
+
+    // Handle dropdown actions
+    function handleAction(action) {
+      if (action === "save") {
+        saveAsTxt();
+      } else if (action === "summary") {
+        generateSummary();
+      } else if (action === "clear") {
+        clearHistory();
+      }
+      // Reset dropdown to default after action
+      document.querySelector(".buttons select").value = "";
     }
   </script>
 
