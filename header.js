@@ -140,7 +140,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const [id, name] = line.split(',');
         if (id && name) users[id.trim()] = name.trim();
       });
-      userDiv.textContent = Loaded ${Object.keys(users).length} users;
+      userDiv.textContent = `Loaded ${Object.keys(users).length} users`;
     })
     .catch(err => {
       userDiv.textContent = 'User file not found';
@@ -170,7 +170,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!name || !id) { alert("Enter valid ID from users.txt"); return; }
 
     const now = new Date();
-    const key = ${name}_${id};
+    const key = `${name}_${id}`;
 
     const logEntry = { name, id, status, timestamp: now.toLocaleString(), duration: '-' };
 
@@ -230,7 +230,7 @@ document.addEventListener('DOMContentLoaded', () => {
   window.generateSummary = function() {
     const userLogs = {};
     logs.forEach(log => {
-      const key = ${log.name}_${log.id};
+      const key = `${log.name}_${log.id}`;
       if (!userLogs[key]) userLogs[key] = [];
       userLogs[key].push({status: log.status, time: new Date(log.timestamp)});
     });
@@ -248,7 +248,7 @@ document.addEventListener('DOMContentLoaded', () => {
           i++;
         }
       }
-      summaryData[key]={name:key.split('')[0], id:key.split('')[1], total:totalMinutes, count:sessions};
+      summaryData[key]={name:key.split('_')[0], id:key.split('_')[1], total:totalMinutes, count:sessions};
     }
     localStorage.setItem("summary", JSON.stringify(summaryData));
     renderSummary();
@@ -282,3 +282,4 @@ document.addEventListener('DOMContentLoaded', () => {
   renderSummary();
 
 });
+
