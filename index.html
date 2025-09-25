@@ -68,6 +68,16 @@
     <button onclick="clearHistory()">Clear History</button>
   </div>
 
+  <div id="header-placeholder"></div>
+<script>
+  async function loadHeader() {
+    const response = await fetch('./components/header.html');
+    const headerHTML = await response.text();
+    document.getElementById('header-placeholder').innerHTML = headerHTML;
+  }
+  loadHeader();
+</script>
+
   <!-- Log Table -->
   <table id="logTable">
     <thead>
