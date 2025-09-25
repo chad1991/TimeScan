@@ -5,48 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>IN/OUT Log System (Persistent)</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 30px;
-    }
-    label {
-      display: block;
-      margin-top: 10px;
-    }
-    input, button {
-      padding: 8px;
-      margin-top: 5px;
-      width: 300px;
-      max-width: 100%;
-    }
-    input[readonly] {
-      background-color: #f9f9f9;
-      cursor: not-allowed;
-    }
-    .buttons {
-      margin-top: 15px;
-    }
-    .buttons button {
-      width: 140px;
-      margin-right: 10px;
-      margin-bottom: 10px;
-    }
-    table {
-      margin-top: 30px;
-      width: 100%;
-      border-collapse: collapse;
-    }
-    th, td {
-      padding: 10px;
-      border: 1px solid #999;
-      text-align: center;
-    }
-    th {
-      background-color: #f2f2f2;
-    }
-    h3 {
-      margin-top: 50px;
-    }
+    body { font-family: Arial, sans-serif; margin: 30px; }
+    label { display: block; margin-top: 10px; }
+    input, button { padding: 8px; margin-top: 5px; width: 300px; max-width: 100%; }
+    input[readonly] { background-color: #f9f9f9; cursor: not-allowed; }
+    .buttons { margin-top: 15px; }
+    .buttons button { width: 140px; margin-right: 10px; margin-bottom: 10px; }
+    table { margin-top: 30px; width: 100%; border-collapse: collapse; }
+    th, td { padding: 10px; border: 1px solid #999; text-align: center; }
+    th { background-color: #f2f2f2; }
+    h3 { margin-top: 50px; }
+    /* Space for floating header */
+    body { padding-top: 80px; }
   </style>
 </head>
 <body>
@@ -67,7 +37,6 @@
     <button onclick="generateSummary()">Generate Summary</button>
     <button onclick="clearHistory()">Clear History</button>
   </div>
-
 
   <!-- Log Table -->
   <table id="logTable">
@@ -97,181 +66,8 @@
     <tbody></tbody>
   </table>
 
-  <script>
-    const lastStatusTimestamps = {};
-    const users = {};
-    let logs = JSON.parse(localStorage.getItem("logs")) || [];
-    let summaryData = JSON.parse(localStorage.getItem("summary")) || {};
+  <!-- Include header.js at the bottom -->
+  <script src="header.js"></script>
 
-    // 🔹 Load users.txt
-    fetch("users.txt")
-      .then(res => res.text())
-      .then(text => {
-        text.split("\n").forEach(line => {
-          const [id, name] = line.split(",");
-          if (id && name) users[id.trim()] = name.trim();
-        });
-      })
-      .catch(err => console.error("Failed to load users.txt:", err));
-
-    // 🔹 Auto-fill Name when ID is entered
-    document.getElementById("idNumber").addEventListener("input", function () {
-      const id = this.value.trim();
-      document.getElementById("name").value = users[id] || "";
-    });
-
-    // 🔹 Load saved data on startup
-    window.onload = function () {
-      logs.forEach(log => addRow(log));
-      renderSummary(summaryData);
-    };
-
-    // 🔹 Mark IN/OUT
-    window.markStatus = function(status) {
-      const name = document.getElementById('name').value;
-      const id = document.getElementById('idNumber').value.trim();
-      if (!name || !id) {
-        alert("Please enter a valid ID number (must exist in users.txt).");
-        return;
-      }
-
-      const now = new Date();
-      const nowFormatted = now.toLocaleString();
-      const key = `${name}_${id}`;
-
-      const logEntry = {
-        name,
-        id,
-        status,
-        timestamp: nowFormatted,
-        duration: "-"
-      };
-
-      const lastEntry = lastStatusTimestamps[key];
-      if (lastEntry && lastEntry.status !== status) {
-        const diffMs = Math.abs(now - lastEntry.time);
-        const diffMin = Math.round(diffMs / 60000);
-        logEntry.duration = diffMin;
-
-        if (diffMin > 30) {
-          alert(`${name} exceeded 30 minutes (${diffMin} mins) between ${lastEntry.status} and ${status}.`);
-        }
-        delete lastStatusTimestamps[key];
-      } else {
-        lastStatusTimestamps[key] = { status: status, time: now };
-      }
-
-      logs.push(logEntry);
-      localStorage.setItem("logs", JSON.stringify(logs));
-      addRow(logEntry);
-
-      generateSummary(); // ✅ auto-update summary
-      clearForm();
-    };
-
-    // 🔹 Add row to log table
-    function addRow(log) {
-      const tableBody = document.querySelector('#logTable tbody');
-      const newRow = tableBody.insertRow();
-      newRow.insertCell(0).innerText = log.name;
-      newRow.insertCell(1).innerText = log.id;
-      newRow.insertCell(2).innerText = log.status;
-      newRow.insertCell(3).innerText = log.timestamp;
-      newRow.insertCell(4).innerText = log.duration || "-";
-    }
-
-    // 🔹 Clear form
-    window.clearForm = function() {
-      document.getElementById('idNumber').value = "";
-      document.getElementById('name').value = "";
-      document.getElementById('idNumber').focus();
-    };
-
-    // 🔹 Save as TXT
-    window.saveAsTxt = function() {
-      let txt = '--- IN/OUT Log ---\n';
-      document.querySelectorAll('#logTable tr').forEach(row => {
-        const cols = row.querySelectorAll('th, td');
-        txt += Array.from(cols).map(col => col.innerText).join('\t') + '\n';
-      });
-
-      txt += '\n--- Summary Report ---\n';
-      document.querySelectorAll('#summaryTable tr').forEach(row => {
-        const cols = row.querySelectorAll('th, td');
-        txt += Array.from(cols).map(col => col.innerText).join('\t') + '\n';
-      });
-
-      const blob = new Blob([txt], { type: 'text/plain' });
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = 'INOUT_Log_With_Summary.txt';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    };
-
-    // 🔹 Generate & Save Summary
-    window.generateSummary = function() {
-      const userLogs = {};
-      logs.forEach(log => {
-        const key = `${log.name}_${log.id}`;
-        if (!userLogs[key]) userLogs[key] = [];
-        userLogs[key].push({
-          status: log.status,
-          time: new Date(log.timestamp)
-        });
-      });
-
-      summaryData = {};
-      for (const key in userLogs) {
-        const sorted = userLogs[key].sort((a, b) => a.time - b.time);
-        let totalMinutes = 0, sessionCount = 0;
-
-        for (let i = 0; i < sorted.length - 1; i++) {
-          const a = sorted[i], b = sorted[i + 1];
-          if (a.status !== b.status) {
-            const diffMs = Math.abs(b.time - a.time);
-            const diffMin = Math.round(diffMs / 60000);
-            totalMinutes += diffMin;
-            sessionCount++;
-            i++;
-          }
-        }
-        summaryData[key] = {
-          name: key.split('_')[0],
-          id: key.split('_')[1],
-          total: totalMinutes,
-          count: sessionCount
-        };
-      }
-
-      localStorage.setItem("summary", JSON.stringify(summaryData));
-      renderSummary(summaryData);
-    };
-
-    // 🔹 Render Summary Table
-    function renderSummary(summary) {
-      const summaryBody = document.querySelector('#summaryTable tbody');
-      summaryBody.innerHTML = '';
-      for (const key in summary) {
-        const data = summary[key];
-        const row = summaryBody.insertRow();
-        row.insertCell(0).innerText = data.name;
-        row.insertCell(1).innerText = data.id;
-        row.insertCell(2).innerText = data.total;
-        row.insertCell(3).innerText = data.count;
-      }
-    }
-
-    // 🔹 Clear All Data
-    window.clearHistory = function() {
-      if (confirm("Are you sure you want to clear all logs and summary?")) {
-        logs = [];
-        summaryData = {};
-        localStorage.removeItem("logs");
-        localStorage.removeItem("summary");
-        document.querySelector('#logTable tbody').innerHTML = "";
-        document.querySelector('#summaryTable tbody').innerHTML = "";
-           }
-    };
-
+</body>
+</html>
