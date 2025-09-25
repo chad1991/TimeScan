@@ -19,7 +19,7 @@ function createFloatingHeader() {
 
     // Logo
     const logo = document.createElement('img');
-    logo.src = 'assets/Logo.png'; // <-- Replace with your logo path
+    logo.src = 'assets/logo.png'; // <-- Replace with your logo path
     logo.alt = 'Bench Logo';
     logo.style.height = '50px';
     header.appendChild(logo);
@@ -38,16 +38,38 @@ function createFloatingHeader() {
     digital.style.fontFamily = 'monospace';
     header.appendChild(digital);
 
+    // Username display
+    const userDiv = document.createElement('div');
+    userDiv.id = 'usernameDisplay';
+    userDiv.style.fontSize = '16px';
+    userDiv.style.marginLeft = '15px';
+    header.appendChild(userDiv);
+
     document.body.appendChild(header);
 
-    // Add padding to body so content isn't hidden under header
+    // Add top padding so page content is not hidden
     document.body.style.paddingTop = header.offsetHeight + 'px';
 
+    // Start clocks
     startAnalogClock();
     startDigitalClock();
+
+    // Load username from user.txt
+    fetch('user.txt')
+        .then(res => {
+            if (!res.ok) throw new Error('user.txt not found');
+            return res.text();
+        })
+        .then(data => {
+            userDiv.textContent = `User: ${data}`;
+        })
+        .catch(err => {
+            userDiv.textContent = 'User: N/A';
+            console.error(err);
+        });
 }
 
-// Analog clock code (same as before)
+// Analog clock
 function startAnalogClock() {
     const canvas = document.getElementById('analogClock');
     const ctx = canvas.getContext('2d');
@@ -132,5 +154,5 @@ function startDigitalClock() {
     setInterval(updateTime, 1000);
 }
 
-// Initialize after DOM loaded
+// Initialize header after DOM is loaded
 document.addEventListener('DOMContentLoaded', createFloatingHeader);
