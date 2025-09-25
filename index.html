@@ -39,6 +39,11 @@
       background-color: blue !important;
       color: white !important;
     }
+
+    /* Highlighted table headers */
+    .highlight-header {
+      background-color: #d6f0ff !important; /* light blue */
+    }
   </style>
 </head>
 <body>
@@ -68,11 +73,11 @@
   <table id="logTable">
     <thead>
       <tr>
-        <th>Name</th>
-        <th>ID Number</th>
-        <th>Status</th>
-        <th>Timestamp</th>
-        <th>Duration (min)</th>
+        <th class="highlight-header">Name</th>
+        <th class="highlight-header">ID Number</th>
+        <th class="highlight-header">Status</th>
+        <th class="highlight-header">Timestamp</th>
+        <th class="highlight-header">Duration (min)</th>
       </tr>
     </thead>
     <tbody></tbody>
