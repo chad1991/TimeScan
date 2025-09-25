@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Logo
   const logo = document.createElement('img');
-  logo.src = 'assets/logo.png'; // <-- Adjust path if needed
+  logo.src = 'assets/Logo.png'; // <-- Adjust path if needed
   logo.alt = 'Bench Logo';
   logo.style.height = '50px';
   header.appendChild(logo);
