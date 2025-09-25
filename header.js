@@ -19,7 +19,7 @@ function createFloatingHeader() {
 
     // Logo
     const logo = document.createElement('img');
-    logo.src = 'Logo.png'; // <-- Replace with your logo path
+    logo.src = 'assets/Logo.png'; // <-- Replace with your logo path
     logo.alt = 'Bench Logo';
     logo.style.height = '50px';
     header.appendChild(logo);
