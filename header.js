@@ -15,13 +15,13 @@ document.addEventListener('DOMContentLoaded', () => {
   header.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
   header.style.padding = '10px 20px';
   header.style.fontFamily = 'Arial, sans-serif';
-
-  // Logo
-  const logo = document.createElement('png');
-  logo.src = 'assets/logo.png'; // <-- Adjust path if needed
-  logo.alt = 'Bench Logo';
-  logo.style.height = '50px';
-  header.appendChild(logo);
+// Logo
+const logo = document.createElement('img'); // <-- fixed from 'png' to 'img'
+logo.src = 'assets/logo.png';               // <-- adjust path if needed
+logo.alt = 'Bench Logo';
+logo.style.height = '50px';
+logo.style.marginRight = '20px';
+header.appendChild(logo);
 
   // Analog Clock
   const canvas = document.createElement('canvas');
