@@ -1,1 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>IN/OUT Log System (Persistent)</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 30px; }
+    label { display: block; margin-top: 10px; }
+    input, button { padding: 8px; margin-top: 5px; width: 300px; max-width: 100%; }
+    input[readonly] { background-color: #f9f9f9; cursor: not-allowed; }
+    .buttons { margin-top: 15px; }
+    .buttons button { width: 140px; margin-right: 10px; margin-bottom: 10px; }
+    table { margin-top: 30px; width: 100%; border-collapse: collapse; }
+    th, td { padding: 10px; border: 1px solid #999; text-align: center; }
+    th { background-color: #f2f2f2; }
+    h3 { margin-top: 50px; }
+    /* Space for floating header */
+    body { padding-top: 80px; }
+  </style>
+</head>
+<body>
 
+  <h2>IN/OUT Data Entry Log</h2>
+
+  <label for="idNumber">Enter ID Number:</label>
+  <input type="text" id="idNumber" placeholder="Enter ID Number" autofocus />
+
+  <label for="name">Name:</label>
+  <input type="text" id="name" readonly />
+
+  <div class="buttons">
+    <button onclick="markStatus('IN')">IN</button>
+    <button onclick="markStatus('OUT')">OUT</button>
+    <button onclick="clearForm()">Clear Form</button>
+    <button onclick="saveAsTxt()">Save as .TXT</button>
+    <button onclick="generateSummary()">Generate Summary</button>
+    <button onclick="clearHistory()">Clear History</button>
+  </div>
+
+  <!-- Log Table -->
+  <table id="logTable">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>ID Number</th>
+        <th>Status</th>
+        <th>Timestamp</th>
+        <th>Duration (min)</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <!-- Summary Table -->
+  <h3>Summary Report</h3>
+  <table id="summaryTable">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>ID Number</th>
+        <th>Total Duration (minutes)</th>
+        <th>Sessions Counted</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <!-- Include header.js at the bottom -->
+  <script src="header.js"></script>
+
+</body>
+</html>
